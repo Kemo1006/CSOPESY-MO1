@@ -64,8 +64,10 @@ Space-separated "parameter value" pairs:
   X in [1, 10].
 - delay-per-exec keeps the process on its core, busy-waiting, for that many
   ticks between instructions.
-- "Running processes" lists the processes currently on a core; ready and
-  sleeping processes are not listed until they are dispatched again.
+- "Running processes" lists the processes currently on a core. "Waiting
+  processes" lists processes that are queued (Ready) or Sleeping, and shows
+  at most the first 20, followed by "... and N more waiting" if there are
+  more. "Finished processes" lists the processes that completed.
 
 ## Source layout
   - src/main.cpp             Entry point
@@ -74,4 +76,4 @@ Space-separated "parameter value" pairs:
   - src/Scheduler.*          CPU clock, cores, FCFS/RR scheduling, batch generation
   - src/EmulatedProcess.*    Process state, variables, logs, instruction execution
   - src/Instruction.*        Instruction representation and random generation
-  - src/Utils.*              Timestamps, console clearing, string helpersq
+  - src/Utils.*              Timestamps, console clearing, string helpers

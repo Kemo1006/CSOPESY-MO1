@@ -12,6 +12,9 @@ namespace {
 // Wall-clock length of one CPU tick.
 constexpr std::chrono::milliseconds TICK_DURATION{100};
 
+// Longest "Waiting processes" list printed by screen -ls / report-util.
+constexpr size_t MAX_WAITING_LISTED = 20;
+
 const std::string DIVIDER = "--------------------------------------";
 
 std::string batchProcessName(uint64_t number) {
@@ -90,7 +93,15 @@ std::string Scheduler::utilizationReport() const {
         }
     }
 
+    // Processes that are not on a core and not finished: queued (Ready) or Sleeping.
+    // Only the first MAX_WAITING_LISTED are listed so the report stays readable.
+    std::vector<std::shared_ptr<Process>> waiting;
+    waiting.insert(waiting.end(), readyQueue_.begin(), readyQueue_.end());
+    waiting.insert(waiting.end(), sleeping_.begin(), sleeping_.end());
+    size_t waitingShown = std::min(waiting.size(), MAX_WAITING_LISTED);
+
     size_t nameWidth = 10;
+    for (size_t i = 0; i < waitingShown; ++i) nameWidth = std::max(nameWidth, waiting[i]->name().size() + 2);
     for (const auto& process : running) nameWidth = std::max(nameWidth, process->name().size() + 2);
     for (const auto& process : finished_) nameWidth = std::max(nameWidth, process->name().size() + 2);
 
@@ -105,6 +116,18 @@ std::string Scheduler::utilizationReport() const {
         out << std::left << std::setw(static_cast<int>(nameWidth)) << process->name() << "("
             << util::formatTimestamp(process->createdAt()) << ")   Core: " << std::setw(4) << process->coreId
             << "   " << process->executedInstructions() << " / " << process->totalInstructions() << "\n";
+    }
+
+    out << "\nWaiting processes:\n";
+    for (size_t i = 0; i < waitingShown; ++i) {
+        const auto& process = waiting[i];
+        out << std::left << std::setw(static_cast<int>(nameWidth)) << process->name() << "("
+            << util::formatTimestamp(process->createdAt()) << ")   "
+            << std::setw(13) << (process->state == ProcessState::Sleeping ? "Sleeping" : "Ready")
+            << process->executedInstructions() << " / " << process->totalInstructions() << "\n";
+    }
+    if (waiting.size() > waitingShown) {
+        out << "... and " << waiting.size() - waitingShown << " more waiting\n";
     }
 
     out << "\nFinished processes:\n";
