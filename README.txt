@@ -38,7 +38,7 @@ Main menu (only "initialize" and "exit" work before initializing):
   screen -ls              Show CPU utilization, cores used/available, and
                           the running, waiting and finished processes
   scheduler-start         Generate a dummy process every batch-process-freq
-                          CPU ticks (p01, p02, ...)
+                          batch ticks of 100 ms (p01, p02, ...)
   scheduler-stop          Stop generating dummy processes
   report-util             Save the "screen -ls" report to csopesy-log.txt
 
@@ -62,9 +62,13 @@ Space-separated "parameter value" pairs:
 
 IMPLEMENTATION NOTES
 --------------------
-- One CPU tick lasts 100 ms of wall-clock time (TICK_DURATION in
+- One CPU tick lasts 10 ms of wall-clock time (TICK_DURATION in
   src/Scheduler.cpp). A clock thread advances the tick counter; one worker
   thread per core executes its process once per tick.
+- batch-process-freq is counted in batch ticks of 100 ms, i.e. 10 CPU ticks
+  (CPU_TICKS_PER_BATCH_TICK in src/Scheduler.cpp). Processes therefore execute
+  faster than they are generated, so the CPU can go idle between batches.
+  quantum-cycles, delay-per-exec and SLEEP are still counted in CPU ticks.
 - Instruction counts ("Lines of code", "x / y" in reports) are the number of
   instructions a process executes, with FOR bodies expanded by their repeat
   counts. Each process executes a random count in [min-ins, max-ins].

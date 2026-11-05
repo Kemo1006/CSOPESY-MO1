@@ -10,7 +10,11 @@
 namespace {
 
 // Wall-clock length of one CPU tick.
-constexpr std::chrono::milliseconds TICK_DURATION{100};
+constexpr std::chrono::milliseconds TICK_DURATION{10};
+
+// batch-process-freq is counted in batch ticks of 100 ms (10 CPU ticks), so
+// processes execute faster than they are generated and the CPU can go idle.
+constexpr uint64_t CPU_TICKS_PER_BATCH_TICK = 10;
 
 // Longest "Waiting processes" list printed by screen -ls / report-util.
 constexpr size_t MAX_WAITING_LISTED = 20;
@@ -158,8 +162,9 @@ void Scheduler::clockLoop() {
 
         std::lock_guard<std::mutex> lock(mutex_);
         collectCoreResultsLocked();
-        // With a frequency of 1, a new process is generated at the end of every CPU cycle.
-        if (generating_ && cpuTicks_ % config_.batchProcessFreq == 0) {
+        // With a frequency of 1, a new process is generated at the end of every batch tick
+        // (CPU_TICKS_PER_BATCH_TICK CPU cycles).
+        if (generating_ && cpuTicks_ % (config_.batchProcessFreq * CPU_TICKS_PER_BATCH_TICK) == 0) {
             generateBatchProcessLocked();
         }
         wakeSleepersLocked();
